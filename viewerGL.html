@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec3 a_position;
+attribute vec2 aTextureCoord;
+attribute vec4 a_color;
+
+uniform vec3 u_resolution;
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+
+varying vec2 vTextureCoord;
+
+varying vec4 vColor;
+
+void main() {
+	gl_Position = uPMatrix*uMVMatrix*vec4((a_position*2.0-1.0)/u_resolution, 1.0);
+	vTextureCoord = aTextureCoord;
+    vColor = a_color;
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+precision highp float;
+
+varying vec2 vTextureCoord;
+varying vec4 vColor;
+
+uniform sampler2D uSampler;
+uniform bool useTexture;
+
+void main(void) {
+    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t))*vColor;
+}
+</script>
+
+<script type="text/javascript" src="Consts.js"></script>
+<script type="text/javascript" src="mainGL.js"></script>
+<script type="text/javascript" src="ViewerGL.js"></script>
+<script type="text/javascript" src="Cube.js"></script>
+
+<title>PlatformGL</title>
+</head>
+<body onload="startGameGL();">
+    <div id="divFullScreen">
+        <canvas id="viewerGL" style="border: none;"></canvas>
+    </div>
+</body>
+</html>
