@@ -1,8 +1,9 @@
 function Obj() {
-	this.squareVerticesBuffer;
-	this.squareVerticesTextCoorBuffer;
-    this.Obj_Face1
-	this.squareVerticesIndexBuffer;
+	this.objVerticesBuffer;
+	this.objVerticesTextCoorBuffer;
+    this.obj_Face1
+	this.objVerticesIndexBuffer;
+	this.objVerticesNormalBuffer;
 	this.iXCurrentPos = canvas.width;
 	this.iYCurrentPos = canvas.height;
 	this.absXCurrentPos;
@@ -10,12 +11,14 @@ function Obj() {
 	this.absZCurrentPos;
     this.xRotation = 0;
     this.yRotation = 0;
-    this.xTranslation = 0;
+    this.zTranslation = 0.1;
     this.rotMatX = [];
     this.rotMatY = [];
     this.trans = [];
     this.vertices = [];
+    this.vnormals = [];
     this.faces = [];
+    this.normalfaces = [];
     this.bObjLoaded = false;
 }
 
@@ -28,9 +31,15 @@ Obj.prototype.loadData = function (data, that){
             that.vertices.push([asLine[1], asLine[2], asLine[3]]);
         }
 
+        if (sLine.match("vn .*")) {
+            var asLine = sLine.split(" ");
+            that.vnormals.push([asLine[1], asLine[2], asLine[3]]);
+        }
+
         if (sLine.match("f .*")) {
             var asLine = sLine.split(" ");
             that.faces.push([asLine[1].split("/")[0], asLine[2].split("/")[0], asLine[3].split("/")[0]]);
+            that.normalfaces.push(asLine[1].split("/")[2]);
         }
     }
     this.initMesh();
@@ -40,7 +49,7 @@ Obj.prototype.loadObjFile = function (){
     var file = null;
     var request = new XMLHttpRequest();
     var that = this;
-    request.open("GET", "obj/test.obj");
+    request.open("GET", "obj/cube.obj");
     request.responseType = "text";
     request.onreadystatechange = function () {
         if (request.readyState==4) {
@@ -56,46 +65,64 @@ Obj.prototype.loadObjFile = function (){
 Obj.prototype.initMesh = function (){
     
 
-	this.squareVerticesBuffer = gl.createBuffer();
+	this.objVerticesBuffer = gl.createBuffer();
     var vertex = [];
+    var normal = [];
     var textCoord = [];
     var indices = [];
 
     for (var i=0; i<this.faces.length; i++) {
-        vertex.push(this.vertices[this.faces[i][0]-1][0]);
-        vertex.push(this.vertices[this.faces[i][0]-1][1]);
-        vertex.push(this.vertices[this.faces[i][0]-1][2]);
-        vertex.push(this.vertices[this.faces[i][1]-1][0]);
-        vertex.push(this.vertices[this.faces[i][1]-1][1]);
-        vertex.push(this.vertices[this.faces[i][1]-1][2]);
-        vertex.push(this.vertices[this.faces[i][2]-1][0]);
-        vertex.push(this.vertices[this.faces[i][2]-1][1]);
-        vertex.push(this.vertices[this.faces[i][2]-1][2]);
+        vertex.push(2*this.vertices[this.faces[i][0]-1][0]);
+        vertex.push(2*this.vertices[this.faces[i][0]-1][1]);
+        vertex.push(2*this.vertices[this.faces[i][0]-1][2]);
+        vertex.push(2*this.vertices[this.faces[i][1]-1][0]);
+        vertex.push(2*this.vertices[this.faces[i][1]-1][1]);
+        vertex.push(2*this.vertices[this.faces[i][1]-1][2]);
+        vertex.push(2*this.vertices[this.faces[i][2]-1][0]);
+        vertex.push(2*this.vertices[this.faces[i][2]-1][1]);
+        vertex.push(2*this.vertices[this.faces[i][2]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
         textCoord.push(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
         indices.push(3*i);
         indices.push(3*i+1);
         indices.push(3*i+2);
     }
 
-	this.squareVerticesBuffer.itemSize = 3;
-	this.squareVerticesBuffer.numItems = 3 * this.faces.length;
+	this.objVerticesBuffer.itemSize = 3;
+	this.objVerticesBuffer.numItems = 3 * this.faces.length;
 
-	this.squareVerticesTextCoorBuffer = gl.createBuffer();
+    this.objVerticesNormalBuffer = gl.createBuffer();
 
-	this.squareVerticesTextCoorBuffer.itemSize = 2;
-	this.squareVerticesTextCoorBuffer.numItems = 3 * this.faces.length;
+    this.objVerticesNormalBuffer.itemSize = 3;
+	this.objVerticesNormalBuffer.numItems = 3*this.faces.length;
 
-	this.squareVerticesIndexBuffer = gl.createBuffer();
+	this.objVerticesTextCoorBuffer = gl.createBuffer();
+
+	this.objVerticesTextCoorBuffer.itemSize = 2;
+	this.objVerticesTextCoorBuffer.numItems = 3 * this.faces.length;
+
+	this.objVerticesIndexBuffer = gl.createBuffer();
 	
-	this.squareVerticesIndexBuffer.numItems = 3 * this.faces.length;
+	this.objVerticesIndexBuffer.numItems = 3 * this.faces.length;
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.squareVerticesBuffer);
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertex), gl.STATIC_DRAW);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.squareVerticesTextCoorBuffer);
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesNormalBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normal), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesTextCoorBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textCoord), gl.STATIC_DRAW);
 
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.squareVerticesIndexBuffer);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.objVerticesIndexBuffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
     this.rotMatX[0] = 1.0;
@@ -237,38 +264,59 @@ Obj.prototype.updatePosition = function (){
         this.rotMatY[14] = 0.0;
         this.rotMatY[15] = 1.0;
 	}
+
+    if (keyPressed.indexOf(107) != -1) {
+        this.trans[11] += this.zTranslation;
+	}
+    if (keyPressed.indexOf(109) != -1) {
+        this.trans[11] -= this.zTranslation;
+	}
 }
 
 Obj.prototype.draw = function (){
+
+
     mvMatrix = [ 1.0, 0.0, 0.0, 0.0,
                  0.0, 1.0, 0.0, 0.0,
                  0.0, 0.0, 1.0, 0.0,
                  0.0, 0.0, 0.0, 1.0 ];
+
+    nMatrix = [ 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0 ];
 
     
     mvMatrix = multiply(this.rotMatX, mvMatrix);
     mvMatrix = multiply(this.rotMatY, mvMatrix);
     mvMatrix = multiply(this.trans, mvMatrix);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.squareVerticesBuffer);
-	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.squareVerticesBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    invert(nMatrix, mvMatrix);
+    transpose(nMatrix, nMatrix);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.squareVerticesTextCoorBuffer);
-	gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, this.squareVerticesTextCoorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.objVerticesBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesNormalBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, this.objVerticesNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesTextCoorBuffer);
+	gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, this.objVerticesTextCoorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, this.Obj_Face1);
+	gl.bindTexture(gl.TEXTURE_2D, this.obj_Face1);
     gl.uniform1i(samplerUniform, 0);
 
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.squareVerticesIndexBuffer);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.objVerticesIndexBuffer);
 
     gl.disableVertexAttribArray(shaderProgram.vertexColorAttribute);
     gl.vertexAttrib4f(shaderProgram.vertexColorAttribute, 1, 1, 1, 1);
 
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+    gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, nMatrix);
 
-	gl.drawElements(gl.TRIANGLES, this.squareVerticesIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+	gl.drawElements(gl.TRIANGLES, this.objVerticesIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 }
 
@@ -283,7 +331,7 @@ Obj.prototype.handleLoadedTexture = function (texture) {
 }
 
 Obj.prototype.initTexture = function() {
-	this.Obj_Face1 = this.loadTexture("images/cube_face1.png");
+	this.obj_Face1 = this.loadTexture("images/cube_face1.png");
 }
 
 Obj.prototype.loadTexture = function(imagePath) {

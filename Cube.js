@@ -264,7 +264,7 @@ Cube.prototype.draw = function (){
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.squareVerticesIndexBuffer);
 
     gl.disableVertexAttribArray(shaderProgram.vertexColorAttribute);
-    gl.vertexAttrib4f(shaderProgram.vertexColorAttribute, 1, 1, 1, 1);
+    gl.vertexAttrib4f(shaderProgram.vertexColorAttribute, 1.0, 1.0, 1.0, 1.0);
 
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);

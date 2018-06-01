@@ -5,35 +5,53 @@
 
 <script id="shader-vs" type="x-shader/x-vertex">
 attribute vec3 a_position;
-attribute vec2 aTextureCoord;
+attribute vec3 a_normal;
 attribute vec4 a_color;
+attribute vec2 a_textCoord;
 
 uniform vec3 u_resolution;
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
+uniform mat4 uNMatrix;
 
-varying vec2 vTextureCoord;
+precision highp float;
+
+varying highp vec2 vTextureCoord;
+varying highp vec3 vLighting;
 
 varying vec4 vColor;
 
 void main() {
 	gl_Position = uPMatrix*uMVMatrix*vec4(a_position,1.0);
-	vTextureCoord = aTextureCoord;
+	
+    highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+    highp vec3 directionalLightColor = vec3(1, 1, 1);
+    highp vec3 directionalVector = normalize(vec3(0.0, 0.0, 1.0));
+    highp vec4 transformedNormal = uNMatrix * vec4(a_normal, 1.0);
+    highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+
+    vLighting = ambientLight + (directionalLightColor * directional);
+
     vColor = a_color;
+    
+    vTextureCoord = a_textCoord;
 }
 </script>
 
 <script id="shader-fs" type="x-shader/x-fragment">
 precision highp float;
 
-varying vec2 vTextureCoord;
-varying vec4 vColor;
+varying highp vec2 vTextureCoord;
+varying highp vec4 vColor;
+varying highp vec3 vLighting;
 
 uniform sampler2D uSampler;
 uniform bool useTexture;
 
 void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t))*vColor;
+    //gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t))*vColor;
+    highp vec4 texelColor = texture2D(uSampler, vTextureCoord)*vColor;
+    gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
 }
 </script>
 
