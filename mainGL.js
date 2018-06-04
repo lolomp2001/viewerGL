@@ -58,14 +58,12 @@ function startGameGL() {
 
 		initShaders();
 		
-		gl.clearColor(1.0, 1.0, 1.0, 1.0);
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
         
 		gl.clearDepth(1);
         gl.depthFunc(gl.LESS);
 		gl.disable(gl.DEPTH_TEST);
         gl.disable(gl.CULL_FACE);
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		var viewerGL = new ViewerGL();
 		
@@ -157,7 +155,7 @@ function initWebGL(canvas) {
 
 	try {
 		// Essaye de récupérer le contexte standard. En cas d'échec, il teste l'appel experimental
-		gl = canvas.getContext("webgl")	|| canvas.getContext("experimental-webgl");
+		gl = canvas.getContext("webgl", { premultipliedAlpha: false })	|| canvas.getContext("experimental-webgl", { premultipliedAlpha: false });
 		gl.viewportWidth = canvas.width;
 	    gl.viewportHeight = canvas.height;
 	} catch (e) {
@@ -384,7 +382,8 @@ function resize() {
 		canvas.height = window.innerHeight;
 		canvas.style.left = 0 + "px";
 		canvas.style.top = 0 + "px";
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 	
 	else {
@@ -392,7 +391,8 @@ function resize() {
 		canvas.height=0.9*window.innerHeight;
 		canvas.style.left = 0.08*window.innerWidth/2 +"px";
 		canvas.style.top = 0.08*window.innerHeight/2 +"px";
-        gl.clearColor(1.0, 1.0, 1.0, 0.0);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 	
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
