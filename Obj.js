@@ -274,27 +274,31 @@ Obj.prototype.updatePosition = function (){
 }
 
 Obj.prototype.draw = function (){
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.blendEquation(gl.FUNC_ADD);
+    gl.disable(gl.CULL_FACE);
 
-    mvMatrix = [ 1.0, 0.0, 0.0, 0.0,
-                 0.0, 1.0, 0.0, 0.0,
-                 0.0, 0.0, 1.0, 0.0,
-                 0.0, 0.0, 0.0, 1.0 ];
+    var mvMatrix = [ 1.0, 0.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0, 0.0,
+                     0.0, 0.0, 1.0, 0.0,
+                     0.0, 0.0, 0.0, 1.0 ];
 
-    nMatrix = [ 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0 ];
-
+    var normalMatrix = [ 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0 ];
     
     mvMatrix = multiply(this.rotMatX, mvMatrix);
     mvMatrix = multiply(this.rotMatY, mvMatrix);
     mvMatrix = multiply(this.trans, mvMatrix);
 
-    invert(nMatrix, mvMatrix);
-    transpose(nMatrix, nMatrix);
+    toInverseMat3(mvMatrix,normalMatrix);
+    transpose(normalMatrix);
+
+    gl.uniform3f(shaderProgram.ambientColorUniform, 1.0, 1.0, 1.0);
+    gl.uniform3fv(shaderProgram.lightingDirectionUniform, [0.0, 0.0, 2.0]);
+    gl.uniform3f(shaderProgram.directionalColorUniform, 1.0, 1.0, 1.0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesBuffer);
 	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.objVerticesBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -316,7 +320,7 @@ Obj.prototype.draw = function (){
 
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-    gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, nMatrix);
+    gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
 
 	gl.drawElements(gl.TRIANGLES, this.objVerticesIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
