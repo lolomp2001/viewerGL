@@ -39,7 +39,7 @@ Obj.prototype.loadData = function (data, that){
         if (sLine.match("f .*")) {
             var asLine = sLine.split(" ");
             that.faces.push([asLine[1].split("/")[0], asLine[2].split("/")[0], asLine[3].split("/")[0]]);
-            that.normalfaces.push(asLine[1].split("/")[2]);
+            that.normalfaces.push([asLine[1].split("/")[2], asLine[2].split("/")[2], asLine[3].split("/")[2]]);
         }
     }
     this.initMesh();
@@ -49,7 +49,7 @@ Obj.prototype.loadObjFile = function (){
     var file = null;
     var request = new XMLHttpRequest();
     var that = this;
-    request.open("GET", "obj/cube.obj");
+    request.open("GET", "obj/test2.obj");
     request.responseType = "text";
     request.onreadystatechange = function () {
         if (request.readyState==4) {
@@ -72,24 +72,24 @@ Obj.prototype.initMesh = function (){
     var indices = [];
 
     for (var i=0; i<this.faces.length; i++) {
-        vertex.push(2*this.vertices[this.faces[i][0]-1][0]);
-        vertex.push(2*this.vertices[this.faces[i][0]-1][1]);
-        vertex.push(2*this.vertices[this.faces[i][0]-1][2]);
-        vertex.push(2*this.vertices[this.faces[i][1]-1][0]);
-        vertex.push(2*this.vertices[this.faces[i][1]-1][1]);
-        vertex.push(2*this.vertices[this.faces[i][1]-1][2]);
-        vertex.push(2*this.vertices[this.faces[i][2]-1][0]);
-        vertex.push(2*this.vertices[this.faces[i][2]-1][1]);
-        vertex.push(2*this.vertices[this.faces[i][2]-1][2]);
+        vertex.push(this.vertices[this.faces[i][0]-1][0]);
+        vertex.push(this.vertices[this.faces[i][0]-1][1]);
+        vertex.push(this.vertices[this.faces[i][0]-1][2]);
+        vertex.push(this.vertices[this.faces[i][1]-1][0]);
+        vertex.push(this.vertices[this.faces[i][1]-1][1]);
+        vertex.push(this.vertices[this.faces[i][1]-1][2]);
+        vertex.push(this.vertices[this.faces[i][2]-1][0]);
+        vertex.push(this.vertices[this.faces[i][2]-1][1]);
+        vertex.push(this.vertices[this.faces[i][2]-1][2]);
         normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][1]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][2]-1][2]);
         normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][1]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][2]-1][2]);
         normal.push(this.vnormals[this.normalfaces[i][0]-1][0]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][1]);
-        normal.push(this.vnormals[this.normalfaces[i][0]-1][2]);
+        normal.push(this.vnormals[this.normalfaces[i][1]-1][1]);
+        normal.push(this.vnormals[this.normalfaces[i][2]-1][2]);
         textCoord.push(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
         indices.push(3*i);
         indices.push(3*i+1);
@@ -285,20 +285,17 @@ Obj.prototype.draw = function (){
                      0.0, 0.0, 1.0, 0.0,
                      0.0, 0.0, 0.0, 1.0 ];
 
-    var normalMatrix = [ 0.0, 0.0, 0.0,
-                         0.0, 0.0, 0.0,
-                         0.0, 0.0, 0.0 ];
-    
+    var normalMatrix = [ 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0 ];
+
     mvMatrix = multiply(this.rotMatX, mvMatrix);
     mvMatrix = multiply(this.rotMatY, mvMatrix);
     mvMatrix = multiply(this.trans, mvMatrix);
 
-    toInverseMat3(mvMatrix,normalMatrix);
-    transpose(normalMatrix);
-
-    gl.uniform3f(shaderProgram.ambientColorUniform, 1.0, 1.0, 1.0);
-    gl.uniform3fv(shaderProgram.lightingDirectionUniform, [0.0, 0.0, 2.0]);
-    gl.uniform3f(shaderProgram.directionalColorUniform, 1.0, 1.0, 1.0);
+    inverse(mvMatrix,normalMatrix);
+    transpose(normalMatrix,normalMatrix);    
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.objVerticesBuffer);
 	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.objVerticesBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -320,7 +317,7 @@ Obj.prototype.draw = function (){
 
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-    gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+    gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, normalMatrix);
 
 	gl.drawElements(gl.TRIANGLES, this.objVerticesIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
@@ -336,7 +333,6 @@ Obj.prototype.handleLoadedTexture = function (texture) {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
 	gl.bindTexture(gl.TEXTURE_2D, null);
-
 }
 
 Obj.prototype.initTexture = function() {

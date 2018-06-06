@@ -6,9 +6,7 @@ var textureLocation;
 var samplerUniform;
 var keyPressed = [];
 var drawCount = 0;
-var mvMatrix;
 var pMatrix;
-var nMatrix;
 
 function startGameGL() {
 	document.documentElement.style.overflow = 'hidden';
@@ -26,10 +24,6 @@ function startGameGL() {
 	canvas.initialWidth = canvas.width;
 	canvas.initialHeight = canvas.height;
 
-    mvMatrix = [ 1.0, 0.0, 0.0, 0.0,
-                 0.0, 1.0, 0.0, 0.0,
-                 0.0, 0.0, 1.0, 0.0,
-                 0.0, 0.0, 0.0, 1.0 ];
     var n = 0.1;
     var scale = Math.tan(90 * 0.5 * Math.PI / 180) * n;
     var r = (canvas.width/canvas.height) * scale;
@@ -37,15 +31,11 @@ function startGameGL() {
     var t = scale;
     var b = -t;
     var f = 100;
+
     pMatrix = [2 * n / (r - l),0.0,0.0,0.0,
                0.0,2 * n / (t - b),0.0,0.0,
                (r + l) / (r - l),(t + b) / (t - b),-(f + n) / (f - n), -1,
                -0.0,0.0,-2 * f * n / (f - n),0.0];
-
-    nMatrix = [ 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0 ];
 
 	initWebGL(canvas); // Initialise le contexte WebGL
 
@@ -203,9 +193,9 @@ function initShaders() {
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
     shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-    shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
     shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
-    shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+
+    gl.uniform3fv(shaderProgram.lightingDirectionUniform, [0.0, 0.0, 1.0]);
 
 	textureLocation = gl.getUniformLocation(shaderProgram, "u_textureSize");
 	
@@ -271,31 +261,47 @@ function multiply(a, b) {
   return m;
 }
 
-function toInverseMat3(mat, dest) {
+function inverse(mat, dest) {
+	if(!dest) { dest = mat; }
+	
 	// Cache the matrix values (makes for huge speed increases!)
-	var a00 = mat[0], a01 = mat[1], a02 = mat[2];
-	var a10 = mat[4], a11 = mat[5], a12 = mat[6];
-	var a20 = mat[8], a21 = mat[9], a22 = mat[10];
+	var a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3];
+	var a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7];
+	var a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11];
+	var a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15];
 	
-	var b01 = a22*a11-a12*a21;
-	var b11 = -a22*a10+a12*a20;
-	var b21 = a21*a10-a11*a20;
-		
-	var d = a00*b01 + a01*b11 + a02*b21;
-	if (!d) { return null; }
-	var id = 1/d;
+	var b00 = a00*a11 - a01*a10;
+	var b01 = a00*a12 - a02*a10;
+	var b02 = a00*a13 - a03*a10;
+	var b03 = a01*a12 - a02*a11;
+	var b04 = a01*a13 - a03*a11;
+	var b05 = a02*a13 - a03*a12;
+	var b06 = a20*a31 - a21*a30;
+	var b07 = a20*a32 - a22*a30;
+	var b08 = a20*a33 - a23*a30;
+	var b09 = a21*a32 - a22*a31;
+	var b10 = a21*a33 - a23*a31;
+	var b11 = a22*a33 - a23*a32;
 	
-	if(!dest) { dest = mat3.create(); }
+	// Calculate the determinant (inlined to avoid double-caching)
+	var invDet = 1/(b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06);
 	
-	dest[0] = b01*id;
-	dest[1] = (-a22*a01 + a02*a21)*id;
-	dest[2] = (a12*a01 - a02*a11)*id;
-	dest[3] = b11*id;
-	dest[4] = (a22*a00 - a02*a20)*id;
-	dest[5] = (-a12*a00 + a02*a10)*id;
-	dest[6] = b21*id;
-	dest[7] = (-a21*a00 + a01*a20)*id;
-	dest[8] = (a11*a00 - a01*a10)*id;
+	dest[0] = (a11*b11 - a12*b10 + a13*b09)*invDet;
+	dest[1] = (-a01*b11 + a02*b10 - a03*b09)*invDet;
+	dest[2] = (a31*b05 - a32*b04 + a33*b03)*invDet;
+	dest[3] = (-a21*b05 + a22*b04 - a23*b03)*invDet;
+	dest[4] = (-a10*b11 + a12*b08 - a13*b07)*invDet;
+	dest[5] = (a00*b11 - a02*b08 + a03*b07)*invDet;
+	dest[6] = (-a30*b05 + a32*b02 - a33*b01)*invDet;
+	dest[7] = (a20*b05 - a22*b02 + a23*b01)*invDet;
+	dest[8] = (a10*b10 - a11*b08 + a13*b06)*invDet;
+	dest[9] = (-a00*b10 + a01*b08 - a03*b06)*invDet;
+	dest[10] = (a30*b04 - a31*b02 + a33*b00)*invDet;
+	dest[11] = (-a20*b04 + a21*b02 - a23*b00)*invDet;
+	dest[12] = (-a10*b09 + a11*b07 - a12*b06)*invDet;
+	dest[13] = (a00*b09 - a01*b07 + a02*b06)*invDet;
+	dest[14] = (-a30*b03 + a31*b01 - a32*b00)*invDet;
+	dest[15] = (a20*b03 - a21*b01 + a22*b00)*invDet;
 	
 	return dest;
 };
@@ -303,27 +309,41 @@ function toInverseMat3(mat, dest) {
 function transpose(mat, dest) {
 	// If we are transposing ourselves we can skip a few steps but have to cache some values
 	if(!dest || mat == dest) { 
-		var a01 = mat[1], a02 = mat[2];
-		var a12 = mat[5];
+		var a01 = mat[1], a02 = mat[2], a03 = mat[3];
+		var a12 = mat[6], a13 = mat[7];
+		var a23 = mat[11];
 		
-        mat[1] = mat[3];
-        mat[2] = mat[6];
-        mat[3] = a01;
-        mat[5] = mat[7];
-        mat[6] = a02;
-        mat[7] = a12;
+		mat[1] = mat[4];
+		mat[2] = mat[8];
+		mat[3] = mat[12];
+		mat[4] = a01;
+		mat[6] = mat[9];
+		mat[7] = mat[13];
+		mat[8] = a02;
+		mat[9] = a12;
+		mat[11] = mat[14];
+		mat[12] = a03;
+		mat[13] = a13;
+		mat[14] = a23;
 		return mat;
 	}
 	
 	dest[0] = mat[0];
-	dest[1] = mat[3];
-	dest[2] = mat[6];
-	dest[3] = mat[1];
-	dest[4] = mat[4];
-	dest[5] = mat[7];
-	dest[6] = mat[2];
-	dest[7] = mat[5];
-	dest[8] = mat[8];
+	dest[1] = mat[4];
+	dest[2] = mat[8];
+	dest[3] = mat[12];
+	dest[4] = mat[1];
+	dest[5] = mat[5];
+	dest[6] = mat[9];
+	dest[7] = mat[13];
+	dest[8] = mat[2];
+	dest[9] = mat[6];
+	dest[10] = mat[10];
+	dest[11] = mat[14];
+	dest[12] = mat[3];
+	dest[13] = mat[7];
+	dest[14] = mat[11];
+	dest[15] = mat[15];
 	return dest;
 };
 
